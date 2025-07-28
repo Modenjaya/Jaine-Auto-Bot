@@ -1,0 +1,40 @@
+{
+  "name": "jaine-auto-bot",
+  "version": "1.0.0",
+  "description": "A powerful automated token swapping bot for the 0G Labs Galileo Testnet",
+  "main": "C3.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"No test suite configured yet\" && exit 0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kazuha787/Jaine-Auto-Bot.git"
+  },
+  "keywords": [
+    "defi",
+    "blockchain",
+    "token-swap",
+    "0g-labs",
+    "galileo-testnet",
+    "ethers",
+    "cryptocurrency"
+  ],
+  "author": {
+    "name": "Kazuha787",
+    "email": "kazuha787@example.com",
+    "url": "https://github.com/Kazuha787"
+  },
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/Kazuha787/Jaine-Auto-Bot/issues"
+  },
+  "homepage": "https://github.com/Kazuha787/Jaine-Auto-Bot#readme",
+  "dependencies": {
+    "chalk": "^4.1.2",
+    "ethers": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
