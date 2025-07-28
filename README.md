@@ -246,7 +246,7 @@ Join us on [Telegram](https://t.me/Offical_Im_kazuha) and star the repo on [GitH
 ### Notes on the README
 1. **Structure**: Organized into clear sections with a table of contents for easy navigation.
 2. **Emojis**: Used emojis to enhance visual appeal and highlight key points.
-3. **Details**: Includes comprehensive setup, configuration, and usage instructions tailored to the `C3.js` script provided earlier.
+3. **Details**: Includes comprehensive setup, configuration, and usage instructions tailored to the `index.js` script provided earlier.
 4. **Security**: Emphasizes securing `pv.txt` and avoiding version control for sensitive data.
 5. **Community**: Promotes the Telegram group (`https://t.me/Offical_Im_kazuha`) and GitHub repository (`https://github.com/Kazuha787/Jaine-Auto-Bot.git`).
 6. **Credits**: Acknowledges the user (Kazuha787), dependencies, and the community.
