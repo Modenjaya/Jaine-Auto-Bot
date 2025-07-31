@@ -1,6 +1,14 @@
 const { ethers } = require("ethers");
-const chalk = require("chalk-template");
+const chalk = require("chalk"); // Baris ini tetap sama
 const fs = require("fs");
+
+// --- MODIFIKASI: Penanganan Chalk v5+ dengan require() ---
+// Untuk memastikan chalk berfungsi dengan benar di versi baru (5.x ke atas) dengan require()
+// Ini akan mengubah objek 'chalk' menjadi instance yang memiliki metode warna seperti .green, .red, dll.
+if (typeof chalk === 'function') {
+    chalk = chalk();
+}
+
 
 // Hardcoded environment variables from provided .env
 const RPC_URL = "https://evmrpc-testnet.0g.ai/";
@@ -585,9 +593,7 @@ async function autoSwapUsdtEth(totalSwaps) {
   return true;
 }
 
-// --- MODIFIKASI: Duplikat dan adaptasi untuk semua fungsi autoSwap lainnya ---
-// Anda perlu melakukan hal yang sama untuk setiap fungsi autoSwap lainnya (misalnya autoSwapUsdtBtc, autoSwapBtcEth, dst.)
-// Pastikan mereka juga mengulang `for (const walletInstance of wallets)` dan memanggil `approveToken(walletInstance, ...)` serta `swapAuto(walletInstance, ...)`
+// --- FUNGSI autoSwap LAINNYA (sudah dimodifikasi untuk multi-akun) ---
 
 async function autoSwapUsdtBtc(totalSwaps) {
   log("Starting USDT & BTC swaps for all accounts...", "system");
@@ -1208,7 +1214,7 @@ async function autoSwapEthStog(totalSwaps) {
           await interruptibleDelay(5000);
         }
       }
-      log(`All ETH & STOG swaps completed for wallet: ${walletInstance.address.substring(0, 0)}...`, "success");
+      log(`All ETH & STOG swaps completed for wallet: ${walletInstance.address.substring(0, 8)}...`, "success");
     } catch (error) {
       log(`Error in autoSwapEthStog for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
