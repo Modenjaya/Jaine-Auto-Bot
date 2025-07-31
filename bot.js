@@ -167,9 +167,11 @@ function showBanner() {
   banner.forEach((line) => console.log(centerText(line)));
 }
 
+// --- MODIFIKASI: Menambahkan delay di updateWalletData ---
 async function updateWalletData() {
   log("==================== Wallet Balances ====================", "system");
-  for (const walletInstance of wallets) {
+  for (let i = 0; i < wallets.length; i++) { // Menggunakan loop for untuk kontrol delay
+    const walletInstance = wallets[i];
     try {
       const walletAddress = walletInstance.address;
       const balanceNative = await provider.getBalance(walletAddress);
@@ -205,6 +207,10 @@ async function updateWalletData() {
       console.log("----------------------------------------------------------------");
     } catch (error) {
       log(`Failed to update wallet data for ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
+    }
+    // --- Penundaan antara setiap permintaan akun ---
+    if (i < wallets.length - 1) {
+        await delay(1000); // Tunggu 1 detik antara setiap akun
     }
   }
   log(`Network: ${NETWORK_NAME}`, "system");
@@ -1002,14 +1008,14 @@ async function autoSwapEthBtc(totalSwaps) {
           await interruptibleDelay(5000);
         }
       }
-      log(`All ETH & BTC swaps completed for wallet: ${walletInstance.address.substring(0, 8)}...`, "success");
+      log(`All BTC & ETH swaps completed for wallet: ${walletInstance.address.substring(0, 8)}...`, "success");
     } catch (error) {
-      log(`Error in autoSwapEthBtc for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
+      log(`Error in autoSwapBtcEth for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
     console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
-  log("All ETH & BTC swaps completed for ALL accounts", "success");
+  log("All BTC & ETH swaps completed for ALL accounts", "success");
   return true;
 }
 
@@ -1248,7 +1254,7 @@ async function autoSwapBtcStog(totalSwaps) {
             continue;
           }
         }
-        log(`[${walletInstance.address.substring(0, 0)}...] Swap ${i} completed`, "success"); // Fixed typo here (substring(0,0))
+        log(`[${walletInstance.address.substring(0, 8)}...] Swap ${i} completed`, "success"); // Fixed substring (0,0) to (0,8)
         if (i < totalSwaps) {
           log(`[${walletInstance.address.substring(0, 8)}...] Waiting 5 seconds before next swap...`, "warning");
           await interruptibleDelay(5000);
@@ -1474,7 +1480,7 @@ function showMenu() {
   console.log(centerText("7.  Auto Swap BTC & USDT"));
   console.log(centerText("8.  Auto Swap ETH & USDT"));
   console.log(centerText("9.  Auto Swap ETH & BTC"));
-  // --- PERBAIKAN SINTAKS DI BAWAH INI ---
+  // --- PERBAIKAN SINTAKS DI BAWAH INI (sebelumnya ada kurung tutup `)` yang tidak perlu) ---
   console.log(centerText("10. Auto Swap ETH & GIMO"));
   console.log(centerText("11. Auto Swap BTC & GIMO"));
   console.log(centerText("12. Auto Swap ETH & STOG"));
@@ -1586,7 +1592,7 @@ function showMenu() {
         });
         break;
       case "10":
-        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan: Pastikan async (value) => { ... } adalah sintaks yang benar
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1598,7 +1604,7 @@ function showMenu() {
         });
         break;
       case "11":
-        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan serupa
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1610,7 +1616,7 @@ function showMenu() {
         });
         break;
       case "12":
-        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan serupa
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1622,7 +1628,7 @@ function showMenu() {
         });
         break;
       case "13":
-        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan serupa
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
