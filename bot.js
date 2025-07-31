@@ -14,9 +14,6 @@ const EXPLORER_URL = "https://chainscan-galileo.0g.ai/tx/";
 const APPROVAL_GAS_LIMIT = 100000;
 const SWAP_GAS_LIMIT = 150000;
 
-// --- MODIFIKASI: Menghapus import chalk ---
-// const chalk = require("chalk"); // DIHAPUS
-
 // Read private keys from pv.txt
 let PRIVATE_KEYS = [];
 try {
@@ -29,7 +26,6 @@ try {
     console.error("Invalid or missing private keys in pv.txt. Ensure each key is a 64-character hexadecimal string starting with 0x on a new line.");
     process.exit(1);
   } else {
-    // --- MODIFIKASI: Menggunakan console.log biasa ---
     console.log(`Successfully loaded ${PRIVATE_KEYS.length} private key(s) from pv.txt.`);
   }
 } catch (error) {
@@ -145,25 +141,21 @@ function centerText(text, width = 80) {
   return " ".repeat(padding) + text;
 }
 
-// --- MODIFIKASI: Fungsi log tanpa chalk ---
 function log(message, type = "info") {
   const centeredMessage = centerText(message);
-  // Untuk simplicity, kita tidak akan mewarnai output tanpa chalk.
-  // Anda bisa menambahkan prefix atau suffix manual jika ingin.
   if (type === "success") {
     console.log(`[SUCCESS] ${centeredMessage}`);
   } else if (type === "error") {
-    console.error(`[ERROR] ${centeredMessage}`); // Menggunakan console.error untuk pesan kesalahan
+    console.error(`[ERROR] ${centeredMessage}`);
   } else if (type === "warning") {
-    console.warn(`[WARNING] ${centeredMessage}`); // Menggunakan console.warn untuk pesan peringatan
+    console.warn(`[WARNING] ${centeredMessage}`);
   } else if (type === "system") {
-    console.info(`[SYSTEM] ${centeredMessage}`); // Menggunakan console.info untuk pesan sistem
+    console.info(`[SYSTEM] ${centeredMessage}`);
   } else {
-    console.log(centeredMessage); // Default untuk info
+    console.log(centeredMessage);
   }
 }
 
-// --- MODIFIKASI: showBanner tanpa chalk ---
 function showBanner() {
   const banner = [
     "============================================================",
@@ -175,10 +167,9 @@ function showBanner() {
   banner.forEach((line) => console.log(centerText(line)));
 }
 
-// --- MODIFIKASI: updateWalletData sekarang mengulang semua wallet ---
 async function updateWalletData() {
   log("==================== Wallet Balances ====================", "system");
-  for (const walletInstance of wallets) { // Iterasi setiap wallet
+  for (const walletInstance of wallets) {
     try {
       const walletAddress = walletInstance.address;
       const balanceNative = await provider.getBalance(walletAddress);
@@ -211,7 +202,7 @@ async function updateWalletData() {
       log(`BTC Balance: ${saldoBTC}`, "success");
       log(`GIMO Balance: ${saldoGIMO}`, "success");
       log(`STOG Balance: ${saldoSTOG}`, "success");
-      console.log("----------------------------------------------------------------"); // Pembatas manual
+      console.log("----------------------------------------------------------------");
     } catch (error) {
       log(`Failed to update wallet data for ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
@@ -220,12 +211,11 @@ async function updateWalletData() {
   log("================================================================", "system");
 }
 
-// --- MODIFIKASI: approveToken menerima walletInstance ---
 async function approveToken(walletInstance, tokenAddress, tokenAbi, amount) {
   try {
     const spinner = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
     let i = 0;
-    const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, walletInstance); // Gunakan walletInstance
+    const tokenContract = new ethers.Contract(tokenAddress, tokenAbi, walletInstance);
     const currentAllowance = await tokenContract.allowance(walletInstance.address, ROUTER_ADDRESS);
     if (currentAllowance >= amount) {
       log(`[${walletInstance.address.substring(0, 8)}...] Approval already sufficient`, "system");
@@ -235,7 +225,7 @@ async function approveToken(walletInstance, tokenAddress, tokenAbi, amount) {
     const tx = await tokenContract.approve(ROUTER_ADDRESS, amount, {
       gasLimit: APPROVAL_GAS_LIMIT,
       gasPrice: selectedGasPrice || feeData.gasPrice,
-      nonce: await getNonceForWallet(walletInstance) // Menggunakan fungsi nonce kustom
+      nonce: await getNonceForWallet(walletInstance)
     });
     log(`[${walletInstance.address.substring(0, 8)}...] Approval transaction sent: ${EXPLORER_URL}${tx.hash}`, "system");
     const interval = setInterval(() => {
@@ -252,16 +242,14 @@ async function approveToken(walletInstance, tokenAddress, tokenAbi, amount) {
   }
 }
 
-// --- MODIFIKASI: swapAuto menerima walletInstance ---
 async function swapAuto(walletInstance, direction, amountIn) {
   try {
     const spinner = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
     let i = 0;
-    const swapContract = new ethers.Contract(ROUTER_ADDRESS, CONTRACT_ABI, walletInstance); // Gunakan walletInstance
+    const swapContract = new ethers.Contract(ROUTER_ADDRESS, CONTRACT_ABI, walletInstance);
     let params;
     const deadline = Math.floor(Date.now() / 1000) + 120;
     
-    // Log pesan swap yang lebih spesifik
     let logMessage = `[${walletInstance.address.substring(0, 8)}...] Starting swap `;
 
     if (direction === "usdtToEth") {
@@ -270,7 +258,7 @@ async function swapAuto(walletInstance, direction, amountIn) {
         tokenIn: USDT_ADDRESS,
         tokenOut: ETH_ADDRESS,
         fee: 3000,
-        recipient: walletInstance.address, // Penting: recipient adalah alamat walletInstance
+        recipient: walletInstance.address,
         deadline,
         amountIn,
         amountOutMinimum: 0,
@@ -483,13 +471,13 @@ async function swapAuto(walletInstance, direction, amountIn) {
     } else {
       throw new Error("Unknown swap direction");
     }
-    log(logMessage, "system"); // Log pesan yang sudah dibuat
+    log(logMessage, "system");
 
     const gasPriceToUse = selectedGasPrice || (await provider.getFeeData()).gasPrice;
     const tx = await swapContract.exactInputSingle(params, {
       gasLimit: SWAP_GAS_LIMIT,
       gasPrice: gasPriceToUse,
-      nonce: await getNonceForWallet(walletInstance) // Menggunakan fungsi nonce kustom
+      nonce: await getNonceForWallet(walletInstance)
     });
     log(`[${walletInstance.address.substring(0, 8)}...] Swap transaction sent: ${EXPLORER_URL}${tx.hash}`, "warning");
     const interval = setInterval(() => {
@@ -503,9 +491,7 @@ async function swapAuto(walletInstance, direction, amountIn) {
     const feeAOGI = ethers.formatEther(receipt.gasUsed * gasPriceToUse);
     log(`[${walletInstance.address.substring(0, 8)}...] Transaction fee: ${feeAOGI} OG`, "success");
   } catch (error) {
-    // Penanganan nonce error yang lebih spesifik
     if (error.message && error.message.toLowerCase().includes("nonce")) {
-      // Refresh nonce untuk akun spesifik yang mengalami masalah
       accountNonces[walletInstance.address] = await provider.getTransactionCount(walletInstance.address, "pending");
       log(`[${walletInstance.address.substring(0, 8)}...] Nonce refreshed: ${accountNonces[walletInstance.address]}`, "system");
     }
@@ -514,21 +500,18 @@ async function swapAuto(walletInstance, direction, amountIn) {
   }
 }
 
-// Fungsi untuk mendapatkan nonce per akun
 async function getNonceForWallet(walletInstance) {
   if (accountNonces[walletInstance.address] === undefined) {
     accountNonces[walletInstance.address] = await provider.getTransactionCount(walletInstance.address, "pending");
   }
   const currentNonce = accountNonces[walletInstance.address];
-  accountNonces[walletInstance.address]++; // Increment nonce untuk transaksi berikutnya
+  accountNonces[walletInstance.address]++;
   return currentNonce;
 }
 
-
-// Fungsi autoSwap sekarang mengulang semua akun
 async function autoSwapUsdtEth(totalSwaps) {
   log("Starting USDT & ETH swaps for all accounts...", "system");
-  for (const walletInstance of wallets) { // Iterasi setiap wallet
+  for (const walletInstance of wallets) {
     console.log("================================================================");
     log(`Processing USDT & ETH swaps for wallet: ${walletInstance.address}`, "system");
     console.log("================================================================");
@@ -543,7 +526,7 @@ async function autoSwapUsdtEth(totalSwaps) {
             const currentUsdtBalance = await usdtContract.balanceOf(walletInstance.address);
             if (currentUsdtBalance < usdtAmount) {
               log(`[${walletInstance.address.substring(0, 8)}...] Insufficient USDT balance: ${ethers.formatUnits(currentUsdtBalance, 18)} USDT`, "error");
-              continue; // Lanjut ke swap berikutnya untuk akun ini atau akun berikutnya
+              continue;
             }
             await addTransactionToQueue(async () => {
               await approveToken(walletInstance, USDT_ADDRESS, USDT_ABI, usdtAmount);
@@ -582,14 +565,12 @@ async function autoSwapUsdtEth(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapUsdtEth for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    console.log("----------------------------------------------------------------"); // Pemisah antar akun
-    await interruptibleDelay(5000); // Tunggu antar akun
+    console.log("----------------------------------------------------------------");
+    await interruptibleDelay(5000);
   }
   log("All USDT & ETH swaps completed for ALL accounts", "success");
   return true;
 }
-
-// --- FUNGSI autoSwap LAINNYA (sudah dimodifikasi untuk multi-akun) ---
 
 async function autoSwapUsdtBtc(totalSwaps) {
   log("Starting USDT & BTC swaps for all accounts...", "system");
@@ -1267,7 +1248,7 @@ async function autoSwapBtcStog(totalSwaps) {
             continue;
           }
         }
-        log(`[${walletInstance.address.substring(0, 8)}...] Swap ${i} completed`, "success");
+        log(`[${walletInstance.address.substring(0, 0)}...] Swap ${i} completed`, "success"); // Fixed typo here (substring(0,0))
         if (i < totalSwaps) {
           log(`[${walletInstance.address.substring(0, 8)}...] Waiting 5 seconds before next swap...`, "warning");
           await interruptibleDelay(5000);
@@ -1285,12 +1266,10 @@ async function autoSwapBtcStog(totalSwaps) {
 }
 
 
-// --- MODIFIKASI: autoSwapAll sekarang memanggil fungsi yang dimodifikasi ---
 async function autoSwapAll(totalSwaps) {
   try {
     log("Starting Auto All Swaps for all accounts...", "system");
     
-    // Setiap fungsi autoSwap sudah melakukan iterasi per akun di dalamnya
     const usdtEthSuccess = await autoSwapUsdtEth(totalSwaps);
     if (!usdtEthSuccess) {
       log("Auto All stopped during USDT & ETH swaps", "system");
@@ -1391,7 +1370,6 @@ async function autoSwapAll(totalSwaps) {
   }
 }
 
-// addTransactionToQueue tanpa chalk
 async function addTransactionToQueue(transactionFunction, description) {
   const transactionId = ++transactionIdCounter;
   transactionQueue.push({ id: transactionId, description, status: "queued" });
@@ -1437,9 +1415,9 @@ async function chooseGasFee() {
         `3. High: ${ethers.formatUnits(gasPriceBN * 2n, "gwei")} Gneuron`,
       ];
       log("==================== Gas Fee Selection ====================", "system");
-      options.forEach((opt) => console.log(centerText(opt))); // Menggunakan console.log biasa
+      options.forEach((opt) => console.log(centerText(opt)));
       log("================================================================", "system");
-      readline.question(centerText("Enter choice (1-3): "), (choice) => { // Menghapus chalk.cyan
+      readline.question(centerText("Enter choice (1-3): "), (choice) => {
         const index = parseInt(choice) - 1;
         if (index === 0) resolve(gasPriceBN);
         else if (index === 1) resolve(gasPriceBN * 80n / 100n);
@@ -1486,7 +1464,7 @@ async function startTransactionProcess(pair, totalSwaps) {
 }
 
 function showMenu() {
-  console.log(centerText("==================== 0G Auto Swap Bot ====================")); // Menghapus chalk.cyan
+  console.log(centerText("==================== 0G Auto Swap Bot ===================="));
   console.log(centerText("1.  Check Wallet Balance"));
   console.log(centerText("2.  Auto Swap USDT & ETH"));
   console.log(centerText("3.  Auto Swap USDT & BTC"));
@@ -1496,14 +1474,16 @@ function showMenu() {
   console.log(centerText("7.  Auto Swap BTC & USDT"));
   console.log(centerText("8.  Auto Swap ETH & USDT"));
   console.log(centerText("9.  Auto Swap ETH & BTC"));
+  // --- PERBAIKAN SINTAKS DI BAWAH INI ---
   console.log(centerText("10. Auto Swap ETH & GIMO"));
   console.log(centerText("11. Auto Swap BTC & GIMO"));
   console.log(centerText("12. Auto Swap ETH & STOG"));
   console.log(centerText("13. Auto Swap BTC & STOG"));
+  // --- AKHIR PERBAIKAN ---
   console.log(centerText("14. Auto All (All Pairs)"));
   console.log(centerText("15. Exit"));
   console.log(centerText("================================================================"));
-  readline.question(centerText("Select an option (1-15): "), async (choice) => { // Menghapus chalk.cyan
+  readline.question(centerText("Select an option (1-15): "), async (choice) => {
     switch (choice) {
       case "1":
         await updateWalletData();
@@ -1606,7 +1586,7 @@ function showMenu() {
         });
         break;
       case "10":
-        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan: Pastikan async (value) => { ... } adalah sintaks yang benar
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1618,7 +1598,7 @@ function showMenu() {
         });
         break;
       case "11":
-        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan serupa
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1630,7 +1610,7 @@ function showMenu() {
         });
         break;
       case "12":
-        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan serupa
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1642,7 +1622,7 @@ function showMenu() {
         });
         break;
       case "13":
-        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => { // Perbaikan serupa
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
