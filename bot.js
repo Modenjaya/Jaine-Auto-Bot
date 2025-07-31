@@ -1,5 +1,17 @@
 const { ethers } = require("ethers");
-const chalk = require("chalk"); // Baris ini tetap sama
+let chalk;
+try {
+    // Coba untuk require sebagai CommonJS dan akses default jika ada (untuk kompatibilitas ES Modules)
+    const importedChalk = require("chalk");
+    chalk = importedChalk.__esModule && importedChalk.default ? importedChalk.default : importedChalk;
+    // Jika chalk yang diimpor adalah fungsi, panggil untuk mendapatkan instance warna
+    if (typeof chalk === 'function') {
+        chalk = chalk();
+    }
+} catch (e) {
+    console.error("Gagal memuat Chalk. Pastikan 'chalk' terinstal dengan benar (npm install chalk).", e);
+    process.exit(1);
+}
 const fs = require("fs");
 
 // --- MODIFIKASI: Penanganan Chalk v5+ dengan require() ---
