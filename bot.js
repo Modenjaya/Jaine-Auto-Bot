@@ -1,5 +1,6 @@
 const { ethers } = require("ethers");
 const chalk = require("chalk");
+const greenChalk = chalk.green; 
 const fs = require("fs");
 
 // Hardcoded environment variables from provided .env
