@@ -1,26 +1,5 @@
 const { ethers } = require("ethers");
-let chalk;
-try {
-    // Coba untuk require sebagai CommonJS dan akses default jika ada (untuk kompatibilitas ES Modules)
-    const importedChalk = require("chalk");
-    chalk = importedChalk.__esModule && importedChalk.default ? importedChalk.default : importedChalk;
-    // Jika chalk yang diimpor adalah fungsi, panggil untuk mendapatkan instance warna
-    if (typeof chalk === 'function') {
-        chalk = chalk();
-    }
-} catch (e) {
-    console.error("Gagal memuat Chalk. Pastikan 'chalk' terinstal dengan benar (npm install chalk).", e);
-    process.exit(1);
-}
 const fs = require("fs");
-
-// --- MODIFIKASI: Penanganan Chalk v5+ dengan require() ---
-// Untuk memastikan chalk berfungsi dengan benar di versi baru (5.x ke atas) dengan require()
-// Ini akan mengubah objek 'chalk' menjadi instance yang memiliki metode warna seperti .green, .red, dll.
-if (typeof chalk === 'function') {
-    chalk = chalk();
-}
-
 
 // Hardcoded environment variables from provided .env
 const RPC_URL = "https://evmrpc-testnet.0g.ai/";
@@ -35,7 +14,10 @@ const EXPLORER_URL = "https://chainscan-galileo.0g.ai/tx/";
 const APPROVAL_GAS_LIMIT = 100000;
 const SWAP_GAS_LIMIT = 150000;
 
-// --- MODIFIKASI: Membaca MULTIPLE private keys dari pv.txt ---
+// --- MODIFIKASI: Menghapus import chalk ---
+// const chalk = require("chalk"); // DIHAPUS
+
+// Read private keys from pv.txt
 let PRIVATE_KEYS = [];
 try {
   const fileContent = fs.readFileSync("pv.txt", "utf8").trim();
@@ -47,7 +29,8 @@ try {
     console.error("Invalid or missing private keys in pv.txt. Ensure each key is a 64-character hexadecimal string starting with 0x on a new line.");
     process.exit(1);
   } else {
-    console.log(chalk.green(`Successfully loaded ${PRIVATE_KEYS.length} private key(s) from pv.txt.`));
+    // --- MODIFIKASI: Menggunakan console.log biasa ---
+    console.log(`Successfully loaded ${PRIVATE_KEYS.length} private key(s) from pv.txt.`);
   }
 } catch (error) {
   console.error(`Failed to read pv.txt: ${error.message}`);
@@ -61,7 +44,6 @@ if (!RPC_URL || !ROUTER_ADDRESS || !USDT_ADDRESS || !ETH_ADDRESS || !BTC_ADDRESS
 }
 
 const provider = new ethers.JsonRpcProvider(RPC_URL);
-// --- MODIFIKASI: Membuat array of wallets ---
 const wallets = PRIVATE_KEYS.map(pk => new ethers.Wallet(pk, provider));
 
 const CONTRACT_ABI = [
@@ -129,7 +111,6 @@ const BTC_ABI = ERC20_ABI;
 const GIMO_ABI = ERC20_ABI;
 const STOG_ABI = ERC20_ABI;
 
-// --- MODIFIKASI: Mengelola nonce per akun ---
 let accountNonces = {}; 
 
 let transactionQueue = [];
@@ -164,36 +145,39 @@ function centerText(text, width = 80) {
   return " ".repeat(padding) + text;
 }
 
-// --- MODIFIKASI: Menambahkan address ke log message ---
+// --- MODIFIKASI: Fungsi log tanpa chalk ---
 function log(message, type = "info") {
   const centeredMessage = centerText(message);
+  // Untuk simplicity, kita tidak akan mewarnai output tanpa chalk.
+  // Anda bisa menambahkan prefix atau suffix manual jika ingin.
   if (type === "success") {
-    console.log(chalk.green(centeredMessage));
+    console.log(`[SUCCESS] ${centeredMessage}`);
   } else if (type === "error") {
-    console.log(chalk.red(centeredMessage));
+    console.error(`[ERROR] ${centeredMessage}`); // Menggunakan console.error untuk pesan kesalahan
   } else if (type === "warning") {
-    console.log(chalk.yellow(centeredMessage));
+    console.warn(`[WARNING] ${centeredMessage}`); // Menggunakan console.warn untuk pesan peringatan
   } else if (type === "system") {
-    console.log(chalk.blue(centeredMessage));
+    console.info(`[SYSTEM] ${centeredMessage}`); // Menggunakan console.info untuk pesan sistem
   } else {
-    console.log(chalk.white(centeredMessage));
+    console.log(centeredMessage); // Default untuk info
   }
 }
 
+// --- MODIFIKASI: showBanner tanpa chalk ---
 function showBanner() {
   const banner = [
-    "════════════════════════════════════════════════════════════",
-    "       ----  Jaine Auto Swap Bot - v1.0  ----         ",
-    "               LETS FUCK THIS Testnet                 ",
-    "     CREATED BY KAZUHA - Powered by 0G Labs Testnet     ",
-    "════════════════════════════════════════════════════════════",
+    "============================================================",
+    "         ----  Jaine Auto Swap Bot - v1.0  ----           ",
+    "                   LETS FUCK THIS Testnet                   ",
+    "         CREATED BY KAZUHA - Powered by 0G Labs Testnet     ",
+    "============================================================",
   ];
-  banner.forEach((line) => console.log(chalk.cyan(centerText(line))));
+  banner.forEach((line) => console.log(centerText(line)));
 }
 
 // --- MODIFIKASI: updateWalletData sekarang mengulang semua wallet ---
 async function updateWalletData() {
-  log("══════════════════════ Wallet Balances ══════════════════════", "system");
+  log("==================== Wallet Balances ====================", "system");
   for (const walletInstance of wallets) { // Iterasi setiap wallet
     try {
       const walletAddress = walletInstance.address;
@@ -227,13 +211,13 @@ async function updateWalletData() {
       log(`BTC Balance: ${saldoBTC}`, "success");
       log(`GIMO Balance: ${saldoGIMO}`, "success");
       log(`STOG Balance: ${saldoSTOG}`, "success");
-      log("----------------------------------------------------------------", "system");
+      console.log("----------------------------------------------------------------"); // Pembatas manual
     } catch (error) {
       log(`Failed to update wallet data for ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
   }
   log(`Network: ${NETWORK_NAME}`, "system");
-  log("══════════════════════════════════════════════════════════════", "system");
+  log("================================================================", "system");
 }
 
 // --- MODIFIKASI: approveToken menerima walletInstance ---
@@ -519,7 +503,7 @@ async function swapAuto(walletInstance, direction, amountIn) {
     const feeAOGI = ethers.formatEther(receipt.gasUsed * gasPriceToUse);
     log(`[${walletInstance.address.substring(0, 8)}...] Transaction fee: ${feeAOGI} OG`, "success");
   } catch (error) {
-    // --- MODIFIKASI: Penanganan nonce error yang lebih spesifik ---
+    // Penanganan nonce error yang lebih spesifik
     if (error.message && error.message.toLowerCase().includes("nonce")) {
       // Refresh nonce untuk akun spesifik yang mengalami masalah
       accountNonces[walletInstance.address] = await provider.getTransactionCount(walletInstance.address, "pending");
@@ -530,7 +514,7 @@ async function swapAuto(walletInstance, direction, amountIn) {
   }
 }
 
-// --- MODIFIKASI: Fungsi untuk mendapatkan nonce per akun ---
+// Fungsi untuk mendapatkan nonce per akun
 async function getNonceForWallet(walletInstance) {
   if (accountNonces[walletInstance.address] === undefined) {
     accountNonces[walletInstance.address] = await provider.getTransactionCount(walletInstance.address, "pending");
@@ -541,13 +525,13 @@ async function getNonceForWallet(walletInstance) {
 }
 
 
-// --- MODIFIKASI: Fungsi autoSwap sekarang mengulang semua akun ---
+// Fungsi autoSwap sekarang mengulang semua akun
 async function autoSwapUsdtEth(totalSwaps) {
   log("Starting USDT & ETH swaps for all accounts...", "system");
   for (const walletInstance of wallets) { // Iterasi setiap wallet
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing USDT & ETH swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -598,7 +582,7 @@ async function autoSwapUsdtEth(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapUsdtEth for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system"); // Pemisah antar akun
+    console.log("----------------------------------------------------------------"); // Pemisah antar akun
     await interruptibleDelay(5000); // Tunggu antar akun
   }
   log("All USDT & ETH swaps completed for ALL accounts", "success");
@@ -610,9 +594,9 @@ async function autoSwapUsdtEth(totalSwaps) {
 async function autoSwapUsdtBtc(totalSwaps) {
   log("Starting USDT & BTC swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing USDT & BTC swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -663,7 +647,7 @@ async function autoSwapUsdtBtc(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapUsdtBtc for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All USDT & BTC swaps completed for ALL accounts", "success");
@@ -673,9 +657,9 @@ async function autoSwapUsdtBtc(totalSwaps) {
 async function autoSwapBtcEth(totalSwaps) {
   log("Starting BTC & ETH swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing BTC & ETH swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -726,7 +710,7 @@ async function autoSwapBtcEth(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapBtcEth for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All BTC & ETH swaps completed for ALL accounts", "success");
@@ -736,9 +720,9 @@ async function autoSwapBtcEth(totalSwaps) {
 async function autoSwapUsdtGimo(totalSwaps) {
   log("Starting USDT & GIMO swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing USDT & GIMO swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -789,7 +773,7 @@ async function autoSwapUsdtGimo(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapUsdtGimo for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All USDT & GIMO swaps completed for ALL accounts", "success");
@@ -799,9 +783,9 @@ async function autoSwapUsdtGimo(totalSwaps) {
 async function autoSwapUsdtStog(totalSwaps) {
   log("Starting USDT & STOG swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing USDT & STOG swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -852,7 +836,7 @@ async function autoSwapUsdtStog(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapUsdtStog for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All USDT & STOG swaps completed for ALL accounts", "success");
@@ -862,9 +846,9 @@ async function autoSwapUsdtStog(totalSwaps) {
 async function autoSwapBtcUsdt(totalSwaps) {
   log("Starting BTC & USDT swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing BTC & USDT swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -915,7 +899,7 @@ async function autoSwapBtcUsdt(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapBtcUsdt for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All BTC & USDT swaps completed for ALL accounts", "success");
@@ -925,9 +909,9 @@ async function autoSwapBtcUsdt(totalSwaps) {
 async function autoSwapEthUsdt(totalSwaps) {
   log("Starting ETH & USDT swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing ETH & USDT swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -978,7 +962,7 @@ async function autoSwapEthUsdt(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapEthUsdt for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All ETH & USDT swaps completed for ALL accounts", "success");
@@ -988,9 +972,9 @@ async function autoSwapEthUsdt(totalSwaps) {
 async function autoSwapEthBtc(totalSwaps) {
   log("Starting ETH & BTC swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing ETH & BTC swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -1041,7 +1025,7 @@ async function autoSwapEthBtc(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapEthBtc for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All ETH & BTC swaps completed for ALL accounts", "success");
@@ -1051,9 +1035,9 @@ async function autoSwapEthBtc(totalSwaps) {
 async function autoSwapEthGimo(totalSwaps) {
   log("Starting ETH & GIMO swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing ETH & GIMO swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -1104,7 +1088,7 @@ async function autoSwapEthGimo(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapEthGimo for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All ETH & GIMO swaps completed for ALL accounts", "success");
@@ -1114,9 +1098,9 @@ async function autoSwapEthGimo(totalSwaps) {
 async function autoSwapBtcGimo(totalSwaps) {
   log("Starting BTC & GIMO swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing BTC & GIMO swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -1167,7 +1151,7 @@ async function autoSwapBtcGimo(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapBtcGimo for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All BTC & GIMO swaps completed for ALL accounts", "success");
@@ -1177,9 +1161,9 @@ async function autoSwapBtcGimo(totalSwaps) {
 async function autoSwapEthStog(totalSwaps) {
   log("Starting ETH & STOG swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing ETH & STOG swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -1230,7 +1214,7 @@ async function autoSwapEthStog(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapEthStog for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All ETH & STOG swaps completed for ALL accounts", "success");
@@ -1240,9 +1224,9 @@ async function autoSwapEthStog(totalSwaps) {
 async function autoSwapBtcStog(totalSwaps) {
   log("Starting BTC & STOG swaps for all accounts...", "system");
   for (const walletInstance of wallets) {
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     log(`Processing BTC & STOG swaps for wallet: ${walletInstance.address}`, "system");
-    log(`════════════════════════════════════════════════════════════`, "system");
+    console.log("================================================================");
     try {
       for (let i = 1; i <= totalSwaps; i++) {
         const isForward = i % 2 === 1;
@@ -1293,7 +1277,7 @@ async function autoSwapBtcStog(totalSwaps) {
     } catch (error) {
       log(`Error in autoSwapBtcStog for wallet ${walletInstance.address.substring(0, 8)}...: ${error.message}`, "error");
     }
-    log("----------------------------------------------------------------", "system");
+    console.log("----------------------------------------------------------------");
     await interruptibleDelay(5000);
   }
   log("All BTC & STOG swaps completed for ALL accounts", "success");
@@ -1407,7 +1391,7 @@ async function autoSwapAll(totalSwaps) {
   }
 }
 
-// --- MODIFIKASI: addTransactionToQueue tidak lagi membutuhkan nextNonce global ---
+// addTransactionToQueue tanpa chalk
 async function addTransactionToQueue(transactionFunction, description) {
   const transactionId = ++transactionIdCounter;
   transactionQueue.push({ id: transactionId, description, status: "queued" });
@@ -1417,12 +1401,10 @@ async function addTransactionToQueue(transactionFunction, description) {
     transactionQueue.find((tx) => tx.id === transactionId).status = "processing";
     log(`Transaction [${transactionId}] processing`, "system");
     try {
-      // Nonce sekarang dikelola di dalam fungsi approve/swap via getNonceForWallet
       await transactionFunction(); 
       transactionQueue.find((tx) => tx.id === transactionId).status = "completed";
       log(`Transaction [${transactionId}] completed`, "success");
     } catch (error) {
-      // Nonce error sudah ditangani di approve/swap, jadi di sini hanya logging
       transactionQueue.find((tx) => tx.id === transactionId).status = "error";
       log(`Transaction [${transactionId}] failed: ${error.message}`, "error");
     } finally {
@@ -1430,7 +1412,6 @@ async function addTransactionToQueue(transactionFunction, description) {
     }
   };
 
-  // Logika antrian tetap sama
   if (transactionQueue.length === 1) {
     await processTransaction();
   } else {
@@ -1455,10 +1436,10 @@ async function chooseGasFee() {
         `2. Low: ${ethers.formatUnits(gasPriceBN * 80n / 100n, "gwei")} Gneuron`,
         `3. High: ${ethers.formatUnits(gasPriceBN * 2n, "gwei")} Gneuron`,
       ];
-      log("══════════════════════ Gas Fee Selection ══════════════════════", "system");
-      options.forEach((opt) => log(opt, "cyan"));
-      log("══════════════════════════════════════════════════════════════", "system");
-      readline.question(chalk.cyan(centerText("Enter choice (1-3): ")), (choice) => {
+      log("==================== Gas Fee Selection ====================", "system");
+      options.forEach((opt) => console.log(centerText(opt))); // Menggunakan console.log biasa
+      log("================================================================", "system");
+      readline.question(centerText("Enter choice (1-3): "), (choice) => { // Menghapus chalk.cyan
         const index = parseInt(choice) - 1;
         if (index === 0) resolve(gasPriceBN);
         else if (index === 1) resolve(gasPriceBN * 80n / 100n);
@@ -1505,31 +1486,31 @@ async function startTransactionProcess(pair, totalSwaps) {
 }
 
 function showMenu() {
-  console.log(chalk.cyan(centerText("══════════════════════ 0G Auto Swap Bot ══════════════════════")));
-  console.log(chalk.cyan(centerText("1.  Check Wallet Balance")));
-  console.log(chalk.cyan(centerText("2.  Auto Swap USDT & ETH")));
-  console.log(chalk.cyan(centerText("3.  Auto Swap USDT & BTC")));
-  console.log(chalk.cyan(centerText("4.  Auto Swap BTC & ETH")));
-  console.log(chalk.cyan(centerText("5.  Auto Swap USDT & GIMO")));
-  console.log(chalk.cyan(centerText("6.  Auto Swap USDT & STOG")));
-  console.log(chalk.cyan(centerText("7.  Auto Swap BTC & USDT")));
-  console.log(chalk.cyan(centerText("8.  Auto Swap ETH & USDT")));
-  console.log(chalk.cyan(centerText("9.  Auto Swap ETH & BTC")));
-  console.log(chalk.cyan(centerText("10. Auto Swap ETH & GIMO")));
-  console.log(chalk.cyan(centerText("11. Auto Swap BTC & GIMO")));
-  console.log(chalk.cyan(centerText("12. Auto Swap ETH & STOG")));
-  console.log(chalk.cyan(centerText("13. Auto Swap BTC & STOG")));
-  console.log(chalk.cyan(centerText("14. Auto All (All Pairs)")));
-  console.log(chalk.cyan(centerText("15. Exit")));
-  console.log(chalk.cyan(centerText("══════════════════════════════════════════════════════════════")));
-  readline.question(chalk.cyan(centerText("Select an option (1-15): ")), async (choice) => {
+  console.log(centerText("==================== 0G Auto Swap Bot ====================")); // Menghapus chalk.cyan
+  console.log(centerText("1.  Check Wallet Balance"));
+  console.log(centerText("2.  Auto Swap USDT & ETH"));
+  console.log(centerText("3.  Auto Swap USDT & BTC"));
+  console.log(centerText("4.  Auto Swap BTC & ETH"));
+  console.log(centerText("5.  Auto Swap USDT & GIMO"));
+  console.log(centerText("6.  Auto Swap USDT & STOG"));
+  console.log(centerText("7.  Auto Swap BTC & USDT"));
+  console.log(centerText("8.  Auto Swap ETH & USDT"));
+  console.log(centerText("9.  Auto Swap ETH & BTC"));
+  console.log(centerText("10. Auto Swap ETH & GIMO"));
+  console.log(centerText("11. Auto Swap BTC & GIMO"));
+  console.log(centerText("12. Auto Swap ETH & STOG"));
+  console.log(centerText("13. Auto Swap BTC & STOG"));
+  console.log(centerText("14. Auto All (All Pairs)"));
+  console.log(centerText("15. Exit"));
+  console.log(centerText("================================================================"));
+  readline.question(centerText("Select an option (1-15): "), async (choice) => { // Menghapus chalk.cyan
     switch (choice) {
       case "1":
         await updateWalletData();
         showMenu();
         break;
       case "2":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1541,7 +1522,7 @@ function showMenu() {
         });
         break;
       case "3":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1553,7 +1534,7 @@ function showMenu() {
         });
         break;
       case "4":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1565,7 +1546,7 @@ function showMenu() {
         });
         break;
       case "5":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1577,7 +1558,7 @@ function showMenu() {
         });
         break;
       case "6":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1589,7 +1570,7 @@ function showMenu() {
         });
         break;
       case "7":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1601,7 +1582,7 @@ function showMenu() {
         });
         break;
       case "8":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1613,7 +1594,7 @@ function showMenu() {
         });
         break;
       case "9":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1625,7 +1606,7 @@ function showMenu() {
         });
         break;
       case "10":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1637,7 +1618,7 @@ function showMenu() {
         });
         break;
       case "11":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1649,7 +1630,7 @@ function showMenu() {
         });
         break;
       case "12":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1661,7 +1642,7 @@ function showMenu() {
         });
         break;
       case "13":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per account: ")), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
@@ -1673,7 +1654,7 @@ function showMenu() {
         });
         break;
       case "14":
-        readline.question(chalk.cyan(centerText("Enter number of swaps per pair for each account: ")), async (value) => {
+        readline.question(centerText("Enter number of swaps per pair for each account: "), async (value) => {
           const totalSwaps = parseInt(value);
           if (isNaN(totalSwaps) || totalSwaps <= 0) {
             log("Invalid number of swaps. Enter a number > 0.", "error");
